@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>hi2 · six-beat Tailwind animation</title>
+
+  <!-- Tailwind Play CDN (works as a drop-in demo; for production, build
+       Tailwind normally and keep the @keyframes below). -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* ════════════════════════════════════════════════════════════════════
+       hi2 · six equal timeline beats (each beat = 1/6 of the loop)
+
+       Beat 1  ( 0.0% – 16.67%)  slide + bounce in from the LEFT  → center
+       Beat 2  (16.67% – 33.33%) slide + bounce in from the RIGHT → center
+       Beat 3  (33.33% – 50.00%) idle — gentle breathing float (unchanged)
+       Beat 4  (50.00% – 66.67%) fully hidden (opacity 0)
+       Beat 5  (66.67% – 83.33%) slide + bounce in from the RIGHT → center
+       Beat 6  (83.33% – 100.0%) slide + bounce out to the LEFT with flourish
+
+       Control knobs:
+       · Speed   → change --hi-duration on .hi-stage (default 9s)
+       · Pause   → add class  hi-paused  to .hi-stage
+       · Static  → remove class hi-anim  from the character wrapper
+       The character image itself is never filtered or restyled — only the
+       wrapper is transformed, so hi2.png stays 100% faithful.
+       ════════════════════════════════════════════════════════════════════ */
+
+    html, body { height: 100%; margin: 0; }
+
+    .hi-stage { --hi-duration: 9s; }
+
+    .hi-anim {
+      transform-origin: 50% 100%;          /* ground the bounce at the feet */
+      will-change: transform, opacity;
+      animation: hi-sequence var(--hi-duration) linear infinite;
+    }
+
+    .hi-shadow {
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+      opacity: 0.5;                        /* static fallback (animations off) */
+      animation: hi-shadow var(--hi-duration) linear infinite;
+    }
+
+    .hi-glow {
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+      opacity: 0.5;                        /* static fallback (animations off) */
+      animation: hi-glow var(--hi-duration) linear infinite;
+    }
+
+    /* Pause control — add .hi-paused to .hi-stage to freeze the loop */
+    .hi-stage.hi-paused .hi-anim,
+    .hi-stage.hi-paused .hi-shadow,
+    .hi-stage.hi-paused .hi-glow {
+      animation-play-state: paused;
+    }
+
+    /* Respect reduced-motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .hi-anim, .hi-shadow, .hi-glow { animation: none !important; }
+    }
+
+    /* ── Character timeline ─────────────────────────────────────────────── */
+    @keyframes hi-sequence {
+
+      /* ── Beat 1 · entrance from the left ───────────────────── */
+      0% {
+        transform: translate(-130vw, 0) scale(1) rotate(0deg);
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);   /* glide in */
+      }
+      8% {
+        transform: translate(-14vw, 0) scale(1) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); /* bounce (overshoot) */
+      }
+      11.5% {
+        transform: translate(0, 0) scale(1.05, 0.95) rotate(0deg);   /* land + squash */
+        animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);   /* hop up */
+      }
+      13.5% {
+        transform: translate(0, -26px) scale(0.97, 1.03) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36);/* settle down */
+      }
+      16.67% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.6, 0.05, 0.95, 0.4); /* dash right */
+      }
+
+      /* ── Beat 2 · entrance from the right ───────────────────── */
+      21.5% {
+        transform: translate(128vw, 0) scale(0.99) rotate(2.5deg);
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);   /* turn & glide back */
+      }
+      29% {
+        transform: translate(14vw, 0) scale(1) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); /* bounce to center */
+      }
+      31.5% {
+        transform: translate(0, 0) scale(1.05, 0.95) rotate(0deg);   /* land + squash */
+        animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);   /* hop up */
+      }
+      33.33% {
+        transform: translate(0, -24px) scale(0.97, 1.03) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36);/* settle down */
+      }
+
+      /* ── Beat 3 · idle — gentle floating / breathing ────────── */
+      34.5% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);   /* ease-in-out */
+      }
+      38% {
+        transform: translate(0, -9px) scale(1.015, 0.985) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+      }
+      42.5% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+      }
+      47% {
+        transform: translate(0, -9px) scale(1.015, 0.985) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+      }
+      50% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);   /* fade out */
+      }
+
+      /* ── Beat 4 · fully hidden ──────────────────────────────── */
+      54.5% {
+        transform: translate(5vw, -12px) scale(0.97) rotate(0deg);
+        opacity: 0;
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);   /* drift, invisible */
+      }
+      66.67% {
+        transform: translate(128vw, 0) scale(1) rotate(0deg);
+        opacity: 0;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);   /* fade in while entering */
+      }
+
+      /* ── Beat 5 · entrance from the right ───────────────────── */
+      70% {
+        transform: translate(52vw, 0) scale(0.99) rotate(0deg);
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); /* bounce to center */
+      }
+      79% {
+        transform: translate(0, 0) scale(1.05, 0.95) rotate(0deg);   /* land + squash */
+        animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);   /* hop up */
+      }
+      81% {
+        transform: translate(0, -24px) scale(0.97, 1.03) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36);/* settle down */
+      }
+      83.33% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);   /* flourish hop */
+      }
+
+      /* ── Beat 6 · exit to the left with a flourish ──────────── */
+      86% {
+        transform: translate(0, -20px) scale(1.04) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36);/* land + tilt */
+      }
+      88% {
+        transform: translate(0, 0) scale(1) rotate(3deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);   /* wiggle */
+      }
+      90.5% {
+        transform: translate(-4vw, 0) scale(1) rotate(-3deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);   /* wiggle */
+      }
+      93% {
+        transform: translate(-10vw, 0) scale(1) rotate(1.5deg);
+        animation-timing-function: cubic-bezier(0.6, 0.05, 0.95, 0.4); /* accelerate out */
+      }
+      96.5% {
+        transform: translate(-58vw, 0) scale(1) rotate(-2deg);
+        animation-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1); /* bounce on the way out */
+      }
+      98.5% {
+        transform: translate(-46vw, 0) scale(0.99) rotate(0deg);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36);/* finish off-screen */
+      }
+      100% {
+        transform: translate(-130vw, 0) scale(1) rotate(0deg);
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);   /* seamless loop back */
+      }
+    }
+
+    /* ── Soft ground shadow (follows the character, adds depth) ─────────── */
+    @keyframes hi-shadow {
+      0%    { opacity: 0;   transform: scaleX(0.6);  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+      11.5% { opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      13.5% { opacity: 0.3; transform: scaleX(0.72); animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36); }
+      16.67%{ opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.6, 0.05, 0.95, 0.4); }
+      21.5% { opacity: 0;   transform: scaleX(0.6);  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+      29%   { opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      31.5% { opacity: 0.3; transform: scaleX(0.7);  animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36); }
+      34.5% { opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      38%   { opacity: 0.4; transform: scaleX(0.88); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      42.5% { opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      47%   { opacity: 0.4; transform: scaleX(0.88); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      50%   { opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      54.5% { opacity: 0;   transform: scaleX(0.7);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      66.67%{ opacity: 0;   transform: scaleX(0.6);  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+      79%   { opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      81%   { opacity: 0.3; transform: scaleX(0.7);  animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36); }
+      83.33%{ opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+      86%   { opacity: 0.32; transform: scaleX(0.72); animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36); }
+      88%   { opacity: 0.5; transform: scaleX(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      96.5% { opacity: 0.28; transform: scaleX(0.7); animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.36); }
+      100%  { opacity: 0;   transform: scaleX(0.55); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+    }
+
+    /* ── Soft stage light (breathing glow behind the character) ──────────── */
+    @keyframes hi-glow {
+      0%, 100% { opacity: 0.5;  transform: scale(1);    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      38%      { opacity: 0.72; transform: scale(1.07);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      42.5%    { opacity: 0.55; transform: scale(1.02);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      47%      { opacity: 0.72; transform: scale(1.07);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      50%      { opacity: 0.55; transform: scale(1.02);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      54.5%    { opacity: 0.3;  transform: scale(0.98);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      66.67%   { opacity: 0.3;  transform: scale(1);     animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      70%      { opacity: 0.4;  transform: scale(1);     animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      79%      { opacity: 0.72; transform: scale(1.07);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+      83.33%   { opacity: 0.55; transform: scale(1.02);  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+    }
+  </style>
+</head>
+
+<body class="bg-[#f4e0d2]">
+  <main
+    class="hi-stage relative flex min-h-screen w-full items-center justify-center overflow-x-clip bg-[radial-gradient(1200px_700px_at_50%_18%,#fffaf3_0%,#fdeee1_45%,#f4e0d2_100%)]"
+  >
+    <!-- Soft ambient stage light (decorative only — character untouched) -->
+    <div
+      class="hi-glow pointer-events-none absolute left-1/2 top-1/2 -ml-[24vmin] -mt-[24vmin] h-[48vmin] w-[48vmin] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,236,214,0.55)_0%,rgba(255,214,170,0.18)_45%,rgba(255,200,150,0)_70%)] blur-2xl"
+      aria-hidden="true"
+    ></div>
+
+    <!--
+      Character — hi2.png is displayed 100% unmodified.
+      All motion lives on the .hi-anim wrapper (translate / scale / rotate /
+      opacity), so the artwork keeps its exact original style and lighting.
+    -->
+    <div class="hi-anim relative z-10">
+      <!-- Change src for other setups, e.g. src="/hi2.png" for a Next.js /public folder -->
+      <img
+        src="public/hi2.png"
+        alt="hi"
+        draggable="false"
+        class="hi-img block h-[min(74vh,32rem)] w-auto select-none"
+      />
+
+      <!-- Soft ground shadow, synced to the character's bounce -->
+      <div
+        class="hi-shadow pointer-events-none absolute bottom-[-3%] left-0 right-0 mx-auto h-3 w-[58%] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(120,80,60,0.45)_0%,rgba(120,80,60,0)_65%)]"
+        aria-hidden="true"
+      ></div>
+    </div>
+  </main>
+</body>
+</html>
