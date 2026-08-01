@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { scrollState } from "@/lib/scrollProgress";
 
 // Builds a soft radial-gradient texture at runtime for the rim-glow disc
-// behind the cutout — cheaper than an image asset, and tintable in code.
+// behind the portrait — cheaper than an image asset, and tintable in code.
 function useGlowTexture() {
   return useMemo(() => {
     const size = 512;
@@ -34,6 +34,11 @@ function useGlowTexture() {
   }, []);
 }
 
+// How much the square crop is nudged upward inside the photo, so the face
+// sits nicely inside the circle for typical portrait compositions. Tweak
+// (or set to 0 for a pure center crop) to taste.
+const CROP_BIAS = 0.06;
+
 export default function HeroFigure({ imageUrl }: { imageUrl: string }) {
   const group = useRef<THREE.Group>(null);
   const glowTex = useGlowTexture();
@@ -43,12 +48,46 @@ export default function HeroFigure({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
   texture.colorSpace = THREE.SRGBColorSpace;
 
-  // Derive a sane plane aspect ratio from the loaded image so the cutout
-  // doesn't stretch, whatever size PNG gets dropped in /public.
+  // Derive the photo aspect ratio so the circle can show a square
+  // center-crop of the portrait without stretching it.
   const image = texture.image as { width?: number; height?: number } | undefined;
   const aspect = image?.width && image?.height ? image.width / image.height : 0.75;
-  const height = 4.4;
-  const width = height * aspect;
+
+  const { circleGeo, frameGeo } = useMemo(() => {
+    // Circle in the XY plane (radius 1) — UVs are remapped below from the
+    // full texture to a square crop, so the circular portrait never distorts.
+    const circle = new THREE.CircleGeometry(1, 128);
+    const uv = circle.attributes.uv as THREE.BufferAttribute;
+
+    // Square crop region in UV space: u always spans 0..1, v is cropped for
+    // portrait photos (aspect < 1); a landscape photo (aspect > 1) crops u.
+    let u0 = 0;
+    let u1 = 1;
+    let v0 = (1 - Math.min(aspect, 1)) / 2 - CROP_BIAS;
+    let v1 = 1 - (1 - Math.min(aspect, 1)) / 2 - CROP_BIAS;
+
+    if (aspect > 1) {
+      u0 = (1 - 1 / aspect) / 2;
+      u1 = 1 - u0;
+      v0 = 0;
+      v1 = 1;
+    }
+
+    for (let i = 0; i < uv.count; i++) {
+      uv.setXY(i, u0 + uv.getX(i) * (u1 - u0), v0 + uv.getY(i) * (v1 - v0));
+    }
+    uv.needsUpdate = true;
+
+    // Thin crimson ring — the "perfect circular frame" around the portrait.
+    const frame = new THREE.RingGeometry(1.045, 1.12, 128);
+
+    return { circleGeo: circle, frameGeo: frame };
+  }, [aspect]);
+
+  // Fixed visual weight (same height as the previous cutout), circle fits
+  // the portrait's shorter side so nothing is stretched.
+  const diameter = 4.4;
+  const scale = diameter / 2;
 
   useFrame((state) => {
     if (!group.current) return;
@@ -67,9 +106,9 @@ export default function HeroFigure({ imageUrl }: { imageUrl: string }) {
   return (
     <Billboard follow position={[0, -0.3, 0]}>
       <group ref={group}>
-        {/* Rim-glow disc, sits slightly behind the cutout, additive blend */}
+        {/* Rim-glow disc, sits slightly behind the portrait, additive blend */}
         <mesh position={[0, 0, -0.05]}>
-          <planeGeometry args={[width * 1.8, height * 1.8]} />
+          <planeGeometry args={[diameter * 1.9, diameter * 1.9]} />
           <meshBasicMaterial
             map={glowTex}
             transparent
@@ -78,10 +117,19 @@ export default function HeroFigure({ imageUrl }: { imageUrl: string }) {
           />
         </mesh>
 
-        {/* The cutout itself */}
-        <mesh>
-          <planeGeometry args={[width, height]} />
+        {/* The circular portrait itself */}
+        <mesh geometry={circleGeo} scale={scale}>
           <meshBasicMaterial map={texture} transparent depthWrite={false} />
+        </mesh>
+
+        {/* The circular frame — crimson ring, picked up by the bloom pass */}
+        <mesh geometry={frameGeo} scale={scale} position={[0, 0, 0.01]}>
+          <meshBasicMaterial
+            color="#ff2f47"
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+          />
         </mesh>
       </group>
     </Billboard>

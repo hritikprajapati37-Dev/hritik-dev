@@ -12,6 +12,7 @@ import About from "@/components/sections/About";
 import Skills from "@/components/sections/Skills";
 import Projects from "@/components/sections/Projects";
 import Learning from "@/components/sections/Learning";
+import Contact from "@/components/sections/Contact";
 
 // The 3D canvas touches window/WebGL — must be client-only, no SSR.
 const Scene = dynamic(() => import("@/components/canvas/Scene"), {
@@ -57,6 +58,7 @@ export default function Home() {
         <Skills />
         <Projects />
         <Learning />
+        <Contact />
       </main>
     </>
   );

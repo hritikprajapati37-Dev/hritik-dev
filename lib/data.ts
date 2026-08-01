@@ -7,10 +7,9 @@ export const profile = {
   name: "Hritik Prajapati",
   title: "Aspiring Full-Stack Web Developer",
   bio: "Passionate BCA student and aspiring full-stack developer, building responsive and interactive web applications. Currently expanding my skills in modern web technologies and open to freelance and remote opportunities.",
-  // Drop your transparent-background cutout PNG in /public and point this at it.
-  // Recommended: 1400px+ tall, subject arms outstretched / profile pose,
-  // shot or edited with a strong crimson rim light so it matches the scene lighting.
-  heroImage: "/hi2.png",
+  // Hero portrait — displayed as a perfect circular profile image with a
+  // crimson ring frame inside the 3D scene (see components/canvas/HeroFigure).
+  heroImage: "/hi4.jpg",
   contact: {
     email: "your.email@example.com", // TODO: replace with real email
     github: "https://github.com/your-username", // TODO
