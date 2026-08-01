@@ -7,13 +7,9 @@ export const profile = {
   name: "Hritik Prajapati",
   title: "Aspiring Full-Stack Web Developer",
   bio: "Passionate BCA student and aspiring full-stack developer, building responsive and interactive web applications. Currently expanding my skills in modern web technologies and open to freelance and remote opportunities.",
-  // Drop your transparent-background cutout PNG in /public and point this at it.
-  // Recommended: 1400px+ tall, subject arms outstretched / profile pose,
-  // shot or edited with a strong crimson rim light so it matches the scene lighting.
-  heroImage: "/hi2.png",
   contact: {
     email: "your.email@example.com", // TODO: replace with real email
-    github: "https://github.com/your-username", // TODO
+    github: "https://github.com/hritikprajapati37-Dev",
     linkedin: "https://linkedin.com/in/your-profile", // TODO
   },
 };
