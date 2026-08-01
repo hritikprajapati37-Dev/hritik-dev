@@ -7,6 +7,7 @@ import { scrollState } from "@/lib/scrollProgress";
 
 import Loader from "@/components/ui/Loader";
 import ProgressRail from "@/components/ui/ProgressRail";
+import CharacterLayer from "@/components/ui/CharacterLayer";
 import Hero from "@/components/sections/Hero";
 import About from "@/components/sections/About";
 import Skills from "@/components/sections/Skills";
@@ -48,6 +49,9 @@ export default function Home() {
 
       {/* Readability gradient so text stays legible over the busy 3D scene */}
       <div className="pointer-events-none fixed inset-0 z-[5] bg-crimson-fade opacity-70" />
+
+      {/* Fixed cinematic character (hi3) — scrolls between sections in 3D */}
+      <CharacterLayer />
 
       <div className="film-grain" />
       <ProgressRail />
