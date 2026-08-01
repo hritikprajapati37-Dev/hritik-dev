@@ -10,7 +10,7 @@ export const profile = {
   // Drop your transparent-background cutout PNG in /public and point this at it.
   // Recommended: 1400px+ tall, subject arms outstretched / profile pose,
   // shot or edited with a strong crimson rim light so it matches the scene lighting.
-  heroImage: "/hi1.png",
+  heroImage: "/hi2.png",
   contact: {
     email: "your.email@example.com", // TODO: replace with real email
     github: "https://github.com/your-username", // TODO

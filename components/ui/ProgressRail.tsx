@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { scrollState } from "@/lib/scrollProgress";
 
-const SCENES = ["HERO", "ABOUT", "SKILLS", "WORK", "FOCUS", "CONTACT"];
+const SCENES = ["HERO", "ABOUT", "SKILLS", "WORK", "FOCUS"];
 
 export default function ProgressRail() {
   const [pct, setPct] = useState(0);

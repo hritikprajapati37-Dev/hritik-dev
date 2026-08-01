@@ -55,7 +55,6 @@ items. You should not need to touch any component file just to update
 copy.
 
 Things marked `// TODO` in that file still need your real info:
-- Contact email, GitHub, LinkedIn
 - The 3 project entries are **drafted placeholders** — swap in your real
   titles, descriptions, images, and links once ready. Project images
   currently point at Unsplash URLs; swap for your own screenshots (drop
@@ -84,7 +83,7 @@ components/
     FloatingForms.tsx   Background wireframe geometric forms
     Embers.tsx          Ambient particle system
   sections/           One file per page section (Hero, About, Skills,
-                      Projects, Learning, Contact) — plain DOM, scrolls
+                      Projects, Learning) — plain DOM, scrolls
                       on top of the fixed 3D canvas
   ui/
     Loader.tsx          Full-screen loading screen (asset load progress)

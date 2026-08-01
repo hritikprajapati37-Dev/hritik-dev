@@ -14,7 +14,6 @@ const WAYPOINTS: { position: [number, number, number]; look: [number, number, nu
   { position: [-1.6, 0.4, 5.4], look: [0.5, -0.2, 0] }, // Skills
   { position: [0.8, 0.8, 6.2], look: [-0.3, 0.1, 0] },  // Projects
   { position: [-1, -0.6, 5.6], look: [0.4, 0.3, 0] },   // Learning
-  { position: [0, 0.2, 6.5], look: [0, 0, 0] },         // Contact
 ];
 
 const tmpPos = new THREE.Vector3();
