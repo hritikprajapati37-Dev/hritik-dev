@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useScrollReveal } from "@/lib/useScrollReveal";
 import { profile } from "@/lib/data";
 
@@ -13,9 +14,27 @@ export default function Hero() {
       className="relative flex min-h-screen items-center justify-center px-6"
     >
       <div className="relative z-10 text-center">
+        {/* Small, clean circular profile picture — standard portfolio style.
+            Rendered in HTML (not the 3D scene) so it scrolls away completely
+            once the user moves past the hero. */}
+        <div
+          data-reveal
+          className="mx-auto w-fit rounded-full bg-gradient-to-b from-crimson-hot/80 via-crimson-core/60 to-crimson-deep/70 p-1.5 shadow-[0_0_50px_rgba(255,47,71,0.4)]"
+        >
+          <Image
+            src={profile.heroImage}
+            alt="Profile picture of Hritik Prajapati"
+            width={352}
+            height={352}
+            priority
+            className="h-36 w-36 rounded-full border-2 border-void object-cover sm:h-44 sm:w-44"
+            style={{ objectPosition: "50% 30%" }}
+          />
+        </div>
+
         <p
           data-reveal
-          className="font-mono text-xs tracking-widest2 text-crimson-hot"
+          className="mt-8 font-mono text-xs tracking-widest2 text-crimson-hot"
         >
           PORTFOLIO — SCENE 01
         </p>
@@ -31,7 +50,10 @@ export default function Hero() {
         >
           {profile.title}
         </p>
-        <div data-reveal className="mt-10 flex justify-center gap-2 font-mono text-[11px] text-ash/70">
+        <div
+          data-reveal
+          className="mt-10 flex justify-center gap-2 font-mono text-[11px] text-ash/70"
+        >
           <span>SCROLL</span>
           <span className="animate-pulse text-crimson-hot">↓</span>
         </div>

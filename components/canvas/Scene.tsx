@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
   Bloom,
@@ -12,10 +11,8 @@ import {
 import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import CameraRig from "./CameraRig";
-import HeroFigure from "./HeroFigure";
 import Embers from "./Embers";
 import FloatingForms from "./FloatingForms";
-import { profile } from "@/lib/data";
 
 export default function Scene() {
   return (
@@ -36,10 +33,6 @@ export default function Scene() {
       <ambientLight intensity={0.08} />
 
       <CameraRig />
-
-      <Suspense fallback={null}>
-        <HeroFigure imageUrl={profile.heroImage} />
-      </Suspense>
 
       <FloatingForms />
       <Embers />

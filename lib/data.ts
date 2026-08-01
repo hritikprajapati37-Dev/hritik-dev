@@ -7,8 +7,8 @@ export const profile = {
   name: "Hritik Prajapati",
   title: "Aspiring Full-Stack Web Developer",
   bio: "Passionate BCA student and aspiring full-stack developer, building responsive and interactive web applications. Currently expanding my skills in modern web technologies and open to freelance and remote opportunities.",
-  // Hero portrait — displayed as a perfect circular profile image with a
-  // crimson ring frame inside the 3D scene (see components/canvas/HeroFigure).
+  // Hero profile picture — small circular portrait shown in Scene 01 only.
+  // Rendered in the Hero section's HTML, so it scrolls away completely.
   heroImage: "/hi4.jpg",
   contact: {
     email: "your.email@example.com", // TODO: replace with real email
