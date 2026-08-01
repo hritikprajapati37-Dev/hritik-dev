@@ -18,7 +18,7 @@ export default function Skills() {
       <div className="relative z-10 grid w-full items-center gap-14 lg:grid-cols-2 lg:gap-10">
         {/* Floating portrait + chat bubble on the left side */}
         <div className="order-2 flex flex-col items-center gap-10 sm:flex-row sm:justify-center lg:order-1 lg:justify-start">
-          <FloatingPortrait className="w-32 sm:w-40 lg:w-44" />
+          <FloatingPortrait className="w-[380px] max-w-full" />
           <ChatBubble tail="left">
             <p>
               These are my weapons <span className="text-crimson-hot">⚔️💻</span>

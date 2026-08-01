@@ -44,7 +44,7 @@ export default function Learning() {
             </p>
             <p className="mt-1 text-ash">Learning • Building • Growing</p>
           </ChatBubble>
-          <FloatingPortrait className="w-32 sm:w-40 lg:w-44" />
+          <FloatingPortrait className="w-[380px] max-w-full" />
         </div>
       </div>
     </section>
