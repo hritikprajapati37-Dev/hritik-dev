@@ -5,41 +5,45 @@ import Image from "next/image";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 /**
- * Single fixed character layer — hi3.png stays pinned to the viewport and
- * glides between sections with GSAP-driven 3D transforms:
+ * Single fixed character layer — ONE global <img id="character-img"> (hi3.png)
+ * pinned to the viewport, gliding between sections with GSAP 3D transforms:
  *
- *   Hero    → center of viewport
- *   About   → glides right, rotateY(-10deg), depth translateZ(30px)
- *   Skills  → glides left,  rotateY( 10deg), depth translateZ(30px)
- *   Projects→ scales back (0.8) translateZ(-100px) + fades out COMPLETELY
- *   Focus   → fades back in on the right side
- *   Contact → fades out, sinks 50px
+ *   Hero     → COMPLETELY HIDDEN (opacity 0, visibility hidden)
+ *   About    → fades in on the LEFT side (text content sits right)
+ *   Skills   → glides to the RIGHT side (text content sits left),
+ *              brightness/contrast boosted so it reads against the glow
+ *   Projects → COMPLETELY HIDDEN (fades back into 3D space)
+ *   Focus    → enters RIGHT→LEFT (translateX 100px → 0), settles RIGHT
+ *   Contact  → fades out, sinks 50px
  *
- * One master timeline is scrubbed across the whole document (scrub: 1.5 for
- * cinematic inertia); segment boundaries are derived from each section's
- * real scroll position (section top reaching the viewport bottom), so the
- * transitions feel tied to the sections and stay correct on resize.
+ * One master timeline scrubbed across the whole document (scrub: 1.5 for
+ * cinematic inertia, ease: power2.out per segment for clean glides).
+ * Segment boundaries are derived from each section's real scroll position
+ * and rebuilt on resize/load.
  *
- * Layers (nested so no two animations fight over the same transform):
- *   .char-scroll  – scroll-driven x/y/scale/rotateY/z/autoAlpha
- *   .char-tilt    – mouse tilt (rotateX/rotateY, lerped spring)
- *   .char-float   – ambient time-based bob
+ * Layers (nested so no two animations fight over one transform):
+ *   .char-scroll – scroll-driven x/y/scale/rotateY/z/autoAlpha
+ *   .char-tilt   – mouse tilt (rotateX/rotateY, lerped spring)
+ *   .char-float  – ambient time-based bob
  *   #character-img – the hi3.png cutout; filter shadow shifts with tilt
- *   #char-bubble  – speech bubble with its own translateZ(50px) depth layer
+ *   #char-bubble  – speech bubble on its own translateZ(50px) depth layer
  *
- * The whole layer is pointer-events-none so buttons and links stay clickable.
+ * Container: position fixed, pointer-events none, z-index 10 — buttons and
+ * project links always stay clickable.
  */
 export default function CharacterLayer() {
   const rootRef = useRef<HTMLDivElement>(null);
   const tiltRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  // Bubble side is relative to the character: "right" = bubble to the
+  // character's right; "left" = bubble to the character's left.
   const [bubble, setBubble] = useState<{
     lines: [string, string];
     side: "left" | "right";
   }>({
     lines: ["Hi! Code + Coffee ☕", "How can I help?"],
-    side: "left",
+    side: "right",
   });
 
   useEffect(() => {
@@ -55,8 +59,9 @@ export default function CharacterLayer() {
       const BUBBLE = "#char-bubble";
 
       // ── Static initial states ──────────────────────────────────────────
+      // Starts hidden (Section 01 Hero) — autoAlpha 0 = opacity 0 + visibility hidden.
       gsap.set(CHAR, {
-        x: 0, y: 0, scale: 1, rotateY: 0, z: 0, autoAlpha: 1,
+        x: -320, y: 0, scale: 0.9, rotateY: 0, z: 0, autoAlpha: 0,
         transformPerspective: 1000,
       });
       gsap.set(BUBBLE, { z: 50, autoAlpha: 0, transformPerspective: 1000 });
@@ -88,8 +93,6 @@ export default function CharacterLayer() {
         const off = window.innerWidth >= 1024 ? 300 : 70; // side travel (px)
         const vh = window.innerHeight;
 
-        // Boundary = scroll position at which a section's top reaches the
-        // viewport bottom (the moment the section "enters the reel").
         const boundary = (selector: string) => {
           const el = document.querySelector(selector);
           if (!el) return 1;
@@ -106,7 +109,7 @@ export default function CharacterLayer() {
         const D = (a: number, b: number) => Math.max(0.0001, b - a);
 
         tl = gsap.timeline({
-          defaults: { ease: "none" },
+          defaults: { ease: "power2.out" },
           scrollTrigger: {
             trigger: document.body,
             start: "top top",
@@ -115,75 +118,60 @@ export default function CharacterLayer() {
           },
         });
 
-        // Segment 1 — Hero → About: glide right with rotateY(-10) + depth.
+        // ── Segment 1 — Hero → About ─────────────────────────────────────
+        // Character fades in from behind on the LEFT side (text is on the right).
         tl.fromTo(
           CHAR,
-          { x: 0, rotateY: 0, z: 0, scale: 1, autoAlpha: 1 },
-          { x: off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1, duration: D(0, tAbout) },
+          { x: -off - 60, rotateY: -14, z: 0, scale: 0.92, autoAlpha: 0 },
+          { x: -off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1, duration: D(0, tAbout) },
           0
         );
-        // Bubble fades in just before About takes over.
-        tl.fromTo(
-          BUBBLE,
-          { autoAlpha: 0 },
-          { autoAlpha: 1, duration: 0.01 },
-          Math.max(0, tAbout - 0.01)
-        );
-        tl.add(() => setBubble({ lines: ["Hi! Code + Coffee ☕", "How can I help?"], side: "left" }), tAbout);
+        tl.fromTo(BUBBLE, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, Math.max(0, tAbout - 0.01));
+        tl.add(() => setBubble({ lines: ["Hi! Code + Coffee ☕", "How can I help?"], side: "right" }), tAbout);
 
-        // Segment 2 — About → Skills: sweep left with rotateY(+10).
+        // ── Segment 2 — About → Skills ───────────────────────────────────
+        // Sweep across to the RIGHT side with reverse 3D tilt.
         tl.fromTo(
           CHAR,
-          { x: off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1 },
-          { x: -off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1, duration: D(tAbout, tSkills) },
+          { x: -off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1 },
+          { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1, duration: D(tAbout, tSkills) },
           tAbout
         );
-        tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "right" }), tSkills);
+        tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "left" }), tSkills);
 
-        // Segment 3 — Skills → Projects: scale back into 3D space, fade out,
-        // stay COMPLETELY hidden through the whole Projects section.
+        // ── Segment 3 — Skills → Projects ────────────────────────────────
+        // Scales back into 3D space and fades out — COMPLETELY HIDDEN
+        // (visibility: hidden) throughout the whole Projects section.
         tl.fromTo(
           CHAR,
-          { x: -off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1 },
-          { x: -off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: D(tSkills, tWork) },
+          { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1 },
+          { x: off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: D(tSkills, tWork) },
           tSkills
         );
-        tl.fromTo(
-          BUBBLE,
-          { autoAlpha: 1 },
-          { autoAlpha: 0, duration: 0.01 },
-          Math.max(0, tWork - 0.01)
-        );
-        tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "right" }), tWork);
+        tl.fromTo(BUBBLE, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01 }, Math.max(0, tWork - 0.01));
+        tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "left" }), tWork);
 
-        // Segment 4 — Projects → Focus: fade back in on the right side.
+        // ── Segment 4 — Projects → Focus ─────────────────────────────────
+        // RIGHT-to-LEFT entrance: translateX(100px) → 0, settles on the
+        // RIGHT side (content columns stay left).
         tl.fromTo(
           CHAR,
-          { x: -off * 0.4, rotateY: 0, z: -100, scale: 0.8, autoAlpha: 0 },
-          { x: off, rotateY: -10, z: 0, scale: 1, autoAlpha: 1, duration: D(tWork, tFocus) },
+          { x: off + 100, rotateY: 8, z: -80, scale: 0.85, autoAlpha: 0 },
+          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1, duration: D(tWork, tFocus) },
           tWork
         );
-        tl.fromTo(
-          BUBBLE,
-          { autoAlpha: 0 },
-          { autoAlpha: 1, duration: 0.01 },
-          Math.max(0, tFocus - 0.01)
-        );
+        tl.fromTo(BUBBLE, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, Math.max(0, tFocus - 0.01));
         tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tFocus);
 
-        // Segment 5 — Focus → Contact: fade out and sink 50px.
+        // ── Segment 5 — Focus → Contact ──────────────────────────────────
+        // Fades out and sinks 50px as the contact section enters.
         tl.fromTo(
           CHAR,
-          { x: off, rotateY: -10, z: 0, scale: 1, autoAlpha: 1 },
+          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1 },
           { x: off * 0.6, rotateY: 0, y: 50, scale: 0.95, autoAlpha: 0, duration: D(tFocus, tContact) },
           tFocus
         );
-        tl.fromTo(
-          BUBBLE,
-          { autoAlpha: 1 },
-          { autoAlpha: 0, duration: 0.01 },
-          Math.max(0, tContact - 0.01)
-        );
+        tl.fromTo(BUBBLE, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01 }, Math.max(0, tContact - 0.01));
         tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tContact);
       };
 
@@ -225,8 +213,10 @@ export default function CharacterLayer() {
         cur.x += (target.x - cur.x) * 0.055; // smooth spring-ish lerp
         cur.y += (target.y - cur.y) * 0.055;
         tiltEl.style.transform = `rotateX(${(-cur.y * 5).toFixed(2)}deg) rotateY(${(cur.x * 8).toFixed(2)}deg)`;
-        // Drop-shadow angle/blur shifts in sync with the tilt — red ambient light.
+        // Brightness/contrast boost + drop-shadow that shifts angle/blur in
+        // sync with the tilt — red cinematic ambient lighting.
         imgEl.style.filter =
+          `brightness(1.1) contrast(1.05) ` +
           `drop-shadow(${(cur.x * 16).toFixed(1)}px ${(20 + cur.y * 8).toFixed(1)}px ` +
           `${(26 + Math.abs(cur.x) * 8).toFixed(1)}px rgba(255,0,50,0.3)) ` +
           `drop-shadow(0 0 70px rgba(179,18,43,0.28))`;
@@ -243,7 +233,7 @@ export default function CharacterLayer() {
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none fixed inset-0 z-[6] flex items-center justify-center"
+      className="pointer-events-none fixed inset-0 z-[10] flex items-center justify-center"
       style={{ perspective: "1000px" }}
       aria-hidden
     >
@@ -268,7 +258,11 @@ export default function CharacterLayer() {
               height={1537}
               priority
               draggable={false}
-              className="relative h-auto w-[min(230px,48vw)] drop-shadow-[0_0_28px_rgba(255,47,71,0.4)] drop-shadow-[0_0_70px_rgba(179,18,43,0.3)] md:w-[300px] lg:w-[380px]"
+              className="relative h-auto w-[min(230px,48vw)] md:w-[300px] lg:w-[380px]"
+              style={{
+                filter:
+                  "brightness(1.1) contrast(1.05) drop-shadow(0 20px 30px rgba(255,0,50,0.3)) drop-shadow(0 0 70px rgba(179,18,43,0.28))",
+              }}
             />
           </div>
         </div>
@@ -277,21 +271,21 @@ export default function CharacterLayer() {
         <div
           id="char-bubble"
           className={`absolute top-[6%] z-10 opacity-0 ${
-            bubble.side === "left"
-              ? "right-[calc(100%+1.5rem)]"
-              : "left-[calc(100%+1.5rem)]"
+            bubble.side === "right"
+              ? "left-[calc(100%+1.5rem)]"
+              : "right-[calc(100%+1.5rem)]"
           }`}
         >
           <div
             className={`char-bubble-inner relative w-44 rounded-2xl border border-crimson-core/40 bg-panel/80 px-4 py-3 shadow-[0_0_35px_rgba(255,47,71,0.22)] backdrop-blur-md sm:w-56 ${
-              bubble.side === "left" ? "rounded-tr-md" : "rounded-tl-md"
+              bubble.side === "right" ? "rounded-tl-md" : "rounded-tr-md"
             }`}
           >
             <span
               className={`absolute top-4 h-3 w-3 rotate-45 bg-panel/80 ${
-                bubble.side === "left"
-                  ? "-right-[7px] border-t border-r border-crimson-core/40"
-                  : "-left-[7px] border-b border-l border-crimson-core/40"
+                bubble.side === "right"
+                  ? "-left-[7px] border-b border-l border-crimson-core/40"
+                  : "-right-[7px] border-t border-r border-crimson-core/40"
               }`}
             />
             <p className="font-body text-sm leading-relaxed text-bone">

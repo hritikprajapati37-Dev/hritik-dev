@@ -13,7 +13,8 @@ export default function About() {
       ref={ref}
       className="relative flex min-h-screen items-center px-6 md:px-16"
     >
-      <div className="relative z-10 max-w-xl">
+      {/* Content shifted RIGHT — hi3 lives on the left side via CharacterLayer */}
+      <div className="relative z-10 ml-auto w-full max-w-xl">
         <div data-reveal>
           <SceneHeading number="02" label="ABOUT" title="Who I Am" />
         </div>

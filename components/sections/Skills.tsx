@@ -13,7 +13,8 @@ export default function Skills() {
       ref={ref}
       className="relative flex min-h-screen items-center px-6 md:px-16"
     >
-      <div className="relative z-10 ml-auto w-full max-w-xl text-right">
+      {/* Content shifted LEFT — hi3 lives on the right side via CharacterLayer */}
+      <div className="relative z-10 w-full max-w-xl text-left">
         <div data-reveal>
           <SceneHeading number="03" label="CAPABILITIES" title="Skills & Tools" />
         </div>
@@ -33,7 +34,7 @@ export default function Skills() {
           ))}
         </ul>
 
-        <div data-reveal className="mt-8 flex flex-wrap justify-end gap-2">
+        <div data-reveal className="mt-8 flex flex-wrap justify-start gap-2">
           {tools.map((tool) => (
             <span
               key={tool}
