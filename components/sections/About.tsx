@@ -13,15 +13,24 @@ export default function About() {
     <section
       id="about"
       ref={ref}
-      className="relative flex min-h-screen items-center px-6 md:px-16"
+      className="relative flex min-h-screen items-center px-6 py-24 md:px-16"
     >
-      <div className="relative z-10 grid w-full items-center gap-14 lg:grid-cols-2 lg:gap-10">
-        {/* Portrait (hi3, 320px wide) on the left + chat bubble next to it.
-            Clean image — no border or container box. */}
-        <div
-          data-reveal
-          className="flex items-end justify-center gap-5 sm:gap-8 lg:justify-start"
-        >
+      <div className="relative z-10 grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-8 xl:gap-12">
+        {/* LEFT — scene label, heading, and bio text */}
+        <div className="text-center lg:text-right">
+          <div data-reveal>
+            <SceneHeading number="02" label="ABOUT" title="Who I Am" />
+          </div>
+          <p
+            data-reveal
+            className="mx-auto max-w-xl text-lg leading-relaxed text-ash lg:mr-0 md:text-xl"
+          >
+            {profile.bio}
+          </p>
+        </div>
+
+        {/* MIDDLE — the hi3.png portrait (320px wide, clean, no frame) */}
+        <div data-reveal className="flex justify-center">
           <Image
             src="/hi3.png"
             alt="Portrait of Hritik Prajapati"
@@ -30,23 +39,16 @@ export default function About() {
             priority
             className="h-auto w-[320px] max-w-full object-contain"
           />
+        </div>
 
-          <ChatBubble tail="left" className="mb-8 shrink-0">
+        {/* RIGHT — chat message bubble */}
+        <div className="flex justify-center lg:justify-start">
+          <ChatBubble tail="left">
             <p>
               Hi! 👋 <span className="text-crimson-hot">Code + Coffee</span> ☕💻
             </p>
             <p className="mt-1 text-ash">How can I help?</p>
           </ChatBubble>
-        </div>
-
-        {/* Heading + bio */}
-        <div className="max-w-xl">
-          <div data-reveal>
-            <SceneHeading number="02" label="ABOUT" title="Who I Am" />
-          </div>
-          <p data-reveal className="text-lg leading-relaxed text-ash md:text-xl">
-            {profile.bio}
-          </p>
         </div>
       </div>
     </section>
