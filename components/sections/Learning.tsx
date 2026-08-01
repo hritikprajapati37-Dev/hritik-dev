@@ -3,6 +3,7 @@
 import { useScrollReveal } from "@/lib/useScrollReveal";
 import SceneHeading from "@/components/ui/SceneHeading";
 import ChatBubble from "@/components/ui/ChatBubble";
+import FloatingPortrait from "@/components/ui/FloatingPortrait";
 import { currentFocus } from "@/lib/data";
 
 export default function Learning() {
@@ -35,14 +36,15 @@ export default function Learning() {
           </div>
         </div>
 
-        {/* Chat bubble on the right side, beside the floating figure */}
-        <div className="flex justify-center lg:justify-end">
-          <ChatBubble tail="left">
+        {/* Chat bubble + floating portrait on the right side */}
+        <div className="flex flex-col items-center gap-10 sm:flex-row sm:justify-center lg:justify-end">
+          <ChatBubble tail="right">
             <p>
               In the zone <span className="text-crimson-hot">⚡</span>
             </p>
             <p className="mt-1 text-ash">Learning • Building • Growing</p>
           </ChatBubble>
+          <FloatingPortrait className="w-32 sm:w-40 lg:w-44" />
         </div>
       </div>
     </section>

@@ -3,6 +3,7 @@
 import { useScrollReveal } from "@/lib/useScrollReveal";
 import SceneHeading from "@/components/ui/SceneHeading";
 import ChatBubble from "@/components/ui/ChatBubble";
+import FloatingPortrait from "@/components/ui/FloatingPortrait";
 import { skills, tools } from "@/lib/data";
 
 export default function Skills() {
@@ -15,9 +16,10 @@ export default function Skills() {
       className="relative flex min-h-screen items-center px-6 md:px-16"
     >
       <div className="relative z-10 grid w-full items-center gap-14 lg:grid-cols-2 lg:gap-10">
-        {/* Chat bubble on the left side, next to the floating figure */}
-        <div className="order-2 flex justify-center lg:order-1 lg:justify-start">
-          <ChatBubble tail="right">
+        {/* Floating portrait + chat bubble on the left side */}
+        <div className="order-2 flex flex-col items-center gap-10 sm:flex-row sm:justify-center lg:order-1 lg:justify-start">
+          <FloatingPortrait className="w-32 sm:w-40 lg:w-44" />
+          <ChatBubble tail="left">
             <p>
               These are my weapons <span className="text-crimson-hot">⚔️💻</span>
             </p>

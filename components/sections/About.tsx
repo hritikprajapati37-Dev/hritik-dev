@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useScrollReveal } from "@/lib/useScrollReveal";
 import SceneHeading from "@/components/ui/SceneHeading";
 import ChatBubble from "@/components/ui/ChatBubble";
@@ -16,19 +15,10 @@ export default function About() {
       className="relative flex min-h-screen items-center px-6 md:px-16"
     >
       <div className="relative z-10 grid w-full items-center gap-14 lg:grid-cols-2 lg:gap-10">
-        {/* Portrait (hi3) + chat bubble on the right side of the image — no border,
-            box, or container around the image, just the clean PNG. */}
-        <div data-reveal className="flex items-end justify-center gap-5 sm:gap-8 lg:justify-start">
-          <Image
-            src="/hi3.png"
-            alt="Portrait of Hritik Prajapati"
-            width={407}
-            height={612}
-            priority
-            className="max-h-[52vh] w-auto object-contain"
-          />
-
-          <ChatBubble tail="left" className="mb-8 shrink-0">
+        {/* Greeting bubble — hi3.png no longer appears here; it lives only in
+            the Skills and Currently Focused On sections as a floating portrait. */}
+        <div data-reveal className="flex justify-center lg:justify-start">
+          <ChatBubble tail="left">
             <p>
               Hi! 👋 <span className="text-crimson-hot">Code + Coffee</span> ☕💻
             </p>
