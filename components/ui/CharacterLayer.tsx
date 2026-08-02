@@ -9,17 +9,22 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  * pinned to the viewport, gliding between sections with GSAP 3D transforms:
  *
  *   Hero     → COMPLETELY HIDDEN (opacity 0, visibility hidden)
- *   About    → fades in on the LEFT side (text content sits right)
- *   Skills   → glides to the RIGHT side (text content sits left),
- *              brightness/contrast boosted so it reads against the glow
- *   Projects → COMPLETELY HIDDEN (fades back into 3D space)
- *   Focus    → enters RIGHT→LEFT (translateX 100px → 0), settles RIGHT
- *   Contact  → fades out, sinks 50px
+ *   About    → fades in, then HOLDS on the LEFT side for the whole scene
+ *              (text content sits right)
+ *   Skills   → glides LEFT → RIGHT early in the scene and REMAINS fully
+ *              visible throughout Scene 03 (no shrink / no fade there)
+ *   Projects → vanishes right as the section enters (scale 0.8,
+ *              translateZ(-100px), opacity 0, visibility hidden)
+ *   Focus    → reappears on the RIGHT (translateX 100px → 0 entrance)
+ *   Contact  → REMAINS VISIBLE on the right through Scenes 05 and 06;
+ *              only the speech bubble bows out as the contact form enters
  *
  * One master timeline scrubbed across the whole document (scrub: 1.5 for
  * cinematic inertia, ease: power2.out per segment for clean glides).
- * Segment boundaries are derived from each section's real scroll position
- * and rebuilt on resize/load.
+ * Scene boundaries are derived from each section's real scroll position,
+ * and each transition completes early in its target scene, then HOLDS so
+ * the character stays in the correct pose for the rest of that scene.
+ * Boundaries are rebuilt on resize/load.
  *
  * Layers (nested so no two animations fight over one transform):
  *   .char-scroll – scroll-driven x/y/scale/rotateY/z/autoAlpha
@@ -108,6 +113,13 @@ export default function CharacterLayer() {
 
         const D = (a: number, b: number) => Math.max(0.0001, b - a);
 
+        // Transition windows — each transition finishes early inside its
+        // target scene, then the timeline HOLDS so the character keeps the
+        // correct pose for the remainder of that scene:
+        const tMoveEnd = tSkills + (tWork - tSkills) * 0.45;    // left→right glide done early in Scene 03
+        const tFadeOutEnd = tWork + (tFocus - tWork) * 0.3;     // vanish right after Projects (04) enters
+        const tFadeInEnd = tFocus + (tContact - tFocus) * 0.3;  // reappear right after Focus (05) enters
+
         tl = gsap.timeline({
           defaults: { ease: "power2.out" },
           scrollTrigger: {
@@ -118,8 +130,10 @@ export default function CharacterLayer() {
           },
         });
 
-        // ── Segment 1 — Hero → About ─────────────────────────────────────
-        // Character fades in from behind on the LEFT side (text is on the right).
+        // ── Scene 01 → 02 — fade in on the LEFT ──────────────────────────
+        // Hidden through all of Scene 01 (autoAlpha 0 = opacity 0 +
+        // visibility hidden at scroll 0). Glides in as About approaches and
+        // then HOLDS on the left for the entire Scene 02.
         tl.fromTo(
           CHAR,
           { x: -off - 60, rotateY: -14, z: 0, scale: 0.92, autoAlpha: 0 },
@@ -128,51 +142,50 @@ export default function CharacterLayer() {
         );
         tl.fromTo(BUBBLE, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, Math.max(0, tAbout - 0.01));
         tl.add(() => setBubble({ lines: ["Hi! Code + Coffee ☕", "How can I help?"], side: "right" }), tAbout);
+        // (tAbout → tSkills): HOLD — fully visible on the LEFT during Scene 02.
 
-        // ── Segment 2 — About → Skills ───────────────────────────────────
-        // Sweep across to the RIGHT side with reverse 3D tilt.
+        // ── Scene 03 — glide LEFT → RIGHT, fully visible the whole time ──
+        // The sweep happens inside Scene 03 (not Scene 02) and finishes
+        // early; there is NO shrink and NO fade anywhere in Scene 03.
         tl.fromTo(
           CHAR,
           { x: -off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1 },
-          { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1, duration: D(tAbout, tSkills) },
-          tAbout
+          { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1, duration: D(tSkills, tMoveEnd) },
+          tSkills
         );
         tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "left" }), tSkills);
+        // (tMoveEnd → tWork): HOLD — fully visible on the RIGHT for the rest
+        // of Scene 03.
 
-        // ── Segment 3 — Skills → Projects ────────────────────────────────
-        // Scales back into 3D space and fades out — COMPLETELY HIDDEN
-        // (visibility: hidden) throughout the whole Projects section.
+        // ── Scene 04 — vanish as Projects enters ─────────────────────────
+        // Scales back into 3D space and fades out quickly after the Projects
+        // section appears, so it never obstructs the project cards, and
+        // stays COMPLETELY HIDDEN through the rest of Scene 04.
         tl.fromTo(
           CHAR,
           { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1 },
-          { x: off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: D(tSkills, tWork) },
-          tSkills
+          { x: off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: D(tWork, tFadeOutEnd) },
+          tWork
         );
         tl.fromTo(BUBBLE, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01 }, Math.max(0, tWork - 0.01));
-        tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "left" }), tWork);
+        // (tFadeOutEnd → tFocus): HOLD — completely hidden through the rest
+        // of Scene 04.
 
-        // ── Segment 4 — Projects → Focus ─────────────────────────────────
-        // RIGHT-to-LEFT entrance: translateX(100px) → 0, settles on the
-        // RIGHT side (content columns stay left).
+        // ── Scene 05 — reappear on the RIGHT (right-to-left entrance) ────
         tl.fromTo(
           CHAR,
           { x: off + 100, rotateY: 8, z: -80, scale: 0.85, autoAlpha: 0 },
-          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1, duration: D(tWork, tFocus) },
-          tWork
+          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1, duration: D(tFocus, tFadeInEnd) },
+          tFocus
         );
         tl.fromTo(BUBBLE, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, Math.max(0, tFocus - 0.01));
         tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tFocus);
+        // (tFadeInEnd → end of page): HOLD — character REMAINS VISIBLE on
+        // the right through Scene 05 AND Scene 06 (Contact).
 
-        // ── Segment 5 — Focus → Contact ──────────────────────────────────
-        // Fades out and sinks 50px as the contact section enters.
-        tl.fromTo(
-          CHAR,
-          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1 },
-          { x: off * 0.6, rotateY: 0, y: 50, scale: 0.95, autoAlpha: 0, duration: D(tFocus, tContact) },
-          tFocus
-        );
+        // Scene 06 — only the speech bubble bows out as the contact form
+        // enters, keeping the contact area clean; the character itself stays.
         tl.fromTo(BUBBLE, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01 }, Math.max(0, tContact - 0.01));
-        tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tContact);
       };
 
       build();
