@@ -16,8 +16,8 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  *   Projects → vanishes right as the section enters (scale 0.8,
  *              translateZ(-100px), opacity 0, visibility hidden)
  *   Focus    → reappears on the RIGHT (translateX 100px → 0 entrance)
- *   Contact  → REMAINS VISIBLE on the right through Scenes 05 and 06;
- *              only the speech bubble bows out as the contact form enters
+ *   Contact  → vanishes (opacity 0, autoAlpha) as Scene 06 enters so the
+ *              contact form and social links stay clear
  *
  * One master timeline scrubbed across the whole document (scrub: 1.5 for
  * cinematic inertia, ease: power2.out per segment for clean glides).
@@ -28,18 +28,16 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  *
  * Layers (nested so no two animations fight over one transform):
  *   .char-scroll – scroll-driven x/y/scale/rotateY/z/autoAlpha
- *   .char-tilt   – mouse tilt (rotateX/rotateY, lerped spring)
  *   .char-float  – ambient time-based bob
- *   #character-img – the hi3.png cutout; filter shadow shifts with tilt
+ *   #character-img – the hi3.png cutout with a static cinematic filter
  *   #char-bubble  – speech bubble on its own translateZ(50px) depth layer
  *
+ * The image responds ONLY to scrolling — zero reaction to cursor movement.
  * Container: position fixed, pointer-events none, z-index 10 — buttons and
  * project links always stay clickable.
  */
 export default function CharacterLayer() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const tiltRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   // Bubble side is relative to the character: "right" = bubble to the
   // character's right; "left" = bubble to the character's left.
@@ -53,8 +51,6 @@ export default function CharacterLayer() {
 
   useEffect(() => {
     const root = rootRef.current;
-    const tiltEl = tiltRef.current;
-    const imgEl = imgRef.current;
     if (!root) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -119,6 +115,7 @@ export default function CharacterLayer() {
         const tMoveEnd = tSkills + (tWork - tSkills) * 0.45;    // left→right glide done early in Scene 03
         const tFadeOutEnd = tWork + (tFocus - tWork) * 0.3;     // vanish right after Projects (04) enters
         const tFadeInEnd = tFocus + (tContact - tFocus) * 0.3;  // reappear right after Focus (05) enters
+        const tContactOutEnd = tContact + (1 - tContact) * 0.35; // vanish shortly after Contact (06) enters
 
         tl = gsap.timeline({
           defaults: { ease: "power2.out" },
@@ -180,11 +177,18 @@ export default function CharacterLayer() {
         );
         tl.fromTo(BUBBLE, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, Math.max(0, tFocus - 0.01));
         tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tFocus);
-        // (tFadeInEnd → end of page): HOLD — character REMAINS VISIBLE on
-        // the right through Scene 05 AND Scene 06 (Contact).
+        // (tFadeInEnd → tContact): HOLD — fully visible on the right
+        // through the rest of Scene 05.
 
-        // Scene 06 — only the speech bubble bows out as the contact form
-        // enters, keeping the contact area clean; the character itself stays.
+        // ── Scene 06 — vanish as Contact enters ─────────────────────────
+        // Fades out (and settles slightly) as the contact form and social
+        // links come into view, so the contact area stays clear.
+        tl.fromTo(
+          CHAR,
+          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1 },
+          { x: off * 0.6, rotateY: 0, z: 0, scale: 0.95, autoAlpha: 0, duration: D(tContact, tContactOutEnd) },
+          tContact
+        );
         tl.fromTo(BUBBLE, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01 }, Math.max(0, tContact - 0.01));
       };
 
@@ -208,37 +212,7 @@ export default function CharacterLayer() {
       };
     }, root);
 
-    // ── Interactive mouse tilt + dynamic shadow (hover-capable devices) ──
-    let tickFn: (() => void) | null = null;
-    const canHover =
-      window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-
-    if (canHover && !reduced && tiltEl && imgEl) {
-      const target = { x: 0, y: 0 };
-      const cur = { x: 0, y: 0 };
-      const onMove = (e: MouseEvent) => {
-        target.x = (e.clientX / window.innerWidth) * 2 - 1;
-        target.y = (e.clientY / window.innerHeight) * 2 - 1;
-      };
-      window.addEventListener("mousemove", onMove);
-
-      tickFn = () => {
-        cur.x += (target.x - cur.x) * 0.055; // smooth spring-ish lerp
-        cur.y += (target.y - cur.y) * 0.055;
-        tiltEl.style.transform = `rotateX(${(-cur.y * 5).toFixed(2)}deg) rotateY(${(cur.x * 8).toFixed(2)}deg)`;
-        // Brightness/contrast boost + drop-shadow that shifts angle/blur in
-        // sync with the tilt — red cinematic ambient lighting.
-        imgEl.style.filter =
-          `brightness(1.1) contrast(1.05) ` +
-          `drop-shadow(${(cur.x * 16).toFixed(1)}px ${(20 + cur.y * 8).toFixed(1)}px ` +
-          `${(26 + Math.abs(cur.x) * 8).toFixed(1)}px rgba(255,0,50,0.3)) ` +
-          `drop-shadow(0 0 70px rgba(179,18,43,0.28))`;
-      };
-      gsap.ticker.add(tickFn);
-    }
-
     return () => {
-      if (tickFn) gsap.ticker.remove(tickFn);
       ctx.revert();
     };
   }, []);
@@ -251,33 +225,30 @@ export default function CharacterLayer() {
       aria-hidden
     >
       <div className="char-scroll relative" style={{ transformStyle: "preserve-3d" }}>
-        <div ref={tiltRef} className="char-tilt" style={{ transformStyle: "preserve-3d" }}>
-          <div className="char-float relative" style={{ transformStyle: "preserve-3d" }}>
-            {/* Soft crimson rim-glow halo + under-glow */}
-            <div
-              aria-hidden
-              className="absolute -inset-14 rounded-full bg-crimson-radial blur-2xl"
-            />
-            <div
-              aria-hidden
-              className="absolute inset-0 rounded-full bg-crimson-hot/10 blur-xl"
-            />
-            <Image
-              ref={imgRef}
-              id="character-img"
-              src="/hi3.png"
-              alt=""
-              width={1023}
-              height={1537}
-              priority
-              draggable={false}
-              className="relative h-auto w-[min(230px,48vw)] md:w-[300px] lg:w-[380px]"
-              style={{
-                filter:
-                  "brightness(1.1) contrast(1.05) drop-shadow(0 20px 30px rgba(255,0,50,0.3)) drop-shadow(0 0 70px rgba(179,18,43,0.28))",
-              }}
-            />
-          </div>
+        <div className="char-float relative" style={{ transformStyle: "preserve-3d" }}>
+          {/* Soft crimson rim-glow halo + under-glow */}
+          <div
+            aria-hidden
+            className="absolute -inset-14 rounded-full bg-crimson-radial blur-2xl"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 rounded-full bg-crimson-hot/10 blur-xl"
+          />
+          <Image
+            id="character-img"
+            src="/hi3.png"
+            alt=""
+            width={1023}
+            height={1537}
+            priority
+            draggable={false}
+            className="relative h-auto w-[min(230px,48vw)] md:w-[300px] lg:w-[380px]"
+            style={{
+              filter:
+                "brightness(1.1) contrast(1.05) drop-shadow(0 20px 30px rgba(255,0,50,0.3)) drop-shadow(0 0 70px rgba(179,18,43,0.28))",
+            }}
+          />
         </div>
 
         {/* Speech bubble — own depth layer (translateZ 50px), follows the character */}
