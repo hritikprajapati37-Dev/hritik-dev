@@ -22,16 +22,19 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  * ONE UNIT: opacity/visibility is animated ONLY on the .char-scroll
  * wrapper (autoAlpha), and the bubble inherits it — so both always fade,
  * move, and appear in perfect sync. The bubble's own autoAlpha is set to 1
- * at the Scene-02 boundary and never touched again.
+ * at the first fade-in start and never touched again.
  *
  * Scene keyframes are FIXED progress values that match the bottom-left
  * progress indicator exactly — no element position math:
- *   0.00 → 0.19  Hidden (Hero / early scroll) — never visible on load
- *   0.14 → 0.18  Fade in together on the LEFT (fully visible BEFORE 19%)
- *   0.20 → 0.38  Glide LEFT→RIGHT (settled before 40%), autoAlpha 1
- *   0.60 → 0.64  Fade out completely (Projects)
- *   0.80 → 0.84  Fade back in on the RIGHT (Focus)
- *   0.90 → 0.94  Fade out completely (Contact)
+ *   0.00 → 0.10  Hidden (Hero / early scroll) — never visible on load
+ *   0.10 → 0.19  Fade in together on the LEFT (fully visible at 19%)
+ *   0.19 → 0.26  Stationary, fully visible on the LEFT
+ *   0.26 → 0.46  Glide LEFT→RIGHT (fully on the RIGHT at 46%), text swap
+ *   0.46 → 0.63  Fade out completely (gone by 63%)
+ *   0.63 → 0.73  Fade back in on the RIGHT (fully visible by 73%)
+ *   0.73 → 0.83  Stationary, fully visible on the RIGHT
+ *   0.83 → 0.92  Fade out completely (gone by 92%)
+ *   0.92 → 1.00  Remain hidden
  *
  * One master timeline scrubbed across the whole document (scrub: 1,
  * invalidateOnRefresh: true, ease: power2.out per segment). Because the
@@ -110,27 +113,29 @@ export default function CharacterLayer() {
 
         const off = window.innerWidth >= 1024 ? 300 : 70; // side travel (px)
 
-        // ── FIXED PROGRESS KEYFRAMES (strict) ────────────────────────────
+        // ── FIXED PROGRESS KEYFRAMES (exact) ─────────────────────────────
         // These match the bottom-left progress rail exactly. No element
         // position math — the animation is locked to the global percentage,
         // so it always agrees with the indicator:
-        //   0 → <19%      hidden
-        //   <19%          fade in on the LEFT (fully visible before 19%)
-        //   <40%          glide to the RIGHT (fully settled before 40%)
-        //   60–80%        fade out (Projects)
-        //   80–90%        fade back in on the RIGHT (Focus)
-        //   90–100%       fade out (Contact)
-        const tHiddenEnd = 0.19;      // must stay COMPLETELY hidden until 19%
-        const tFadeIn1Start = 0.14;   // fade-in begins (early scroll)
-        const tFadeIn1End = 0.18;     // fade-in finished BEFORE 19%
-        const tMoveStart = 0.2;       // left→right glide begins
-        const tMoveEnd = 0.38;        // glide finished BEFORE 40%
-        const tWork = 0.6;            // Scene 04 (Projects) begins
-        const tFadeOutEnd = 0.64;     // vanish done by 64%
-        const tFocus = 0.8;           // Scene 05 (Focus) begins
-        const tFadeIn2End = 0.84;     // fade-in done by 84%
-        const tContact = 0.9;         // Scene 06 (Contact) begins
-        const tContactOutEnd = 0.94;  // vanish done by 94%
+        //   0.00 → 0.10  hidden
+        //   0.10 → 0.19  fade in on the LEFT (fully visible at 19%)
+        //   0.19 → 0.26  stationary, fully visible on the LEFT
+        //   0.26 → 0.46  glide to the RIGHT, fully visible (text swap)
+        //   0.46 → 0.63  fade out completely (gone by 63%)
+        //   0.63 → 0.73  fade back in on the RIGHT (fully visible by 73%)
+        //   0.73 → 0.83  stationary, fully visible on the RIGHT
+        //   0.83 → 0.92  fade out completely (gone by 92%)
+        //   0.92 → 1.00  remain hidden
+        const tFadeIn1Start = 0.1;   // 1: fade-in begins at 10%
+        const tFadeIn1End = 0.19;    // 1: fully visible + positioned at 19%
+        const tMoveStart = 0.26;     // 2: left→right glide begins at 26%
+        const tMoveEnd = 0.46;       // 2: fully on the RIGHT at 46%
+        const tFadeOut1Start = 0.46; // 3: fade-out begins at 46%
+        const tFadeOut1End = 0.63;   // 3: completely gone by 63%
+        const tFadeIn2Start = 0.63;  // 4: fade-in begins at 63%
+        const tFadeIn2End = 0.73;    // 4: fully visible by 73%
+        const tFadeOut2Start = 0.83; // 5: fade-out begins at 83%
+        const tFadeOut2End = 0.92;   // 5: completely gone by 92%
 
         tl = gsap.timeline({
           defaults: { ease: "power2.out" },
@@ -152,19 +157,19 @@ export default function CharacterLayer() {
           },
         });
 
-        // ── Scene 01 (0 → <0.19) — COMPLETELY HIDDEN ─────────────────────
+        // ── Range 1 (0 → 0.10) — COMPLETELY HIDDEN ───────────────────────
         // The set at time 0 pins the whole unit (image + bubble, both inside
-        // .char-scroll) to autoAlpha 0 — nothing animates through 19%, on
-        // page load, or on refresh.
+        // .char-scroll) to autoAlpha 0 — nothing animates during the first
+        // 10%, on page load, or on refresh.
         tl.set(
           CHAR,
           { x: -off - 60, rotateY: -14, z: 0, scale: 0.92, autoAlpha: 0 },
           0
         );
 
-        // ── Appear BEFORE 19% — fade in together on the LEFT ─────────────
-        // The pair becomes fully visible by 18%, still in the early scroll,
-        // so it is already settled when progress crosses 19%.
+        // ── Range 2 (0.10 → 0.19) — fade in together on the LEFT ─────────
+        // The pair fades in across the 10–19% band and is fully visible and
+        // correctly positioned at exactly 19%.
         tl.fromTo(
           CHAR,
           { x: -off - 60, rotateY: -14, z: 0, scale: 0.92, autoAlpha: 0 },
@@ -175,12 +180,13 @@ export default function CharacterLayer() {
         // rides the wrapper's autoAlpha — image + bubble fade as one unit.
         tl.set(BUBBLE, { autoAlpha: 1 }, tFadeIn1Start);
         tl.add(() => setBubble({ lines: ["Hi! Code + Coffee ☕", "How can I help?"], side: "right" }), tFadeIn1Start);
-        // (0.18 → tMoveStart): HOLD — fully visible on the LEFT.
+        // (0.19 → 0.26): HOLD — fully visible and stationary on the LEFT.
+        // No movement, no text change (nothing tweens in this band).
 
-        // ── Move RIGHT before 40% — glide, fully visible ─────────────────
-        // The pair sweeps to the right and is fully settled by 38% (before
-        // progress hits 40%); text swaps at the same time. No shrink and no
-        // fade anywhere in this segment — autoAlpha stays 1.
+        // ── Range 3 (0.26 → 0.46) — glide LEFT → RIGHT, fully visible ────
+        // The pair sweeps to the right across the 26–46% band; the text
+        // swaps at the exact moment the move begins. autoAlpha stays 1
+        // throughout this range.
         tl.fromTo(
           CHAR,
           { x: -off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1 },
@@ -188,38 +194,40 @@ export default function CharacterLayer() {
           tMoveStart
         );
         tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "left" }), tMoveStart);
-        // (tMoveEnd → tWork): HOLD — fully visible on the RIGHT.
 
-        // ── Scene 04 (0.60 → 0.80) — fade out completely ─────────────────
-        // Scales back into 3D space and fades out right after Projects
-        // enters, so it never obstructs the project cards.
+        // ── Range 4 (0.46 → 0.63) — fade out completely ──────────────────
+        // Scales back into 3D space and fades out across the 46–63% band —
+        // completely gone by 63%, hidden through the rest of the Projects
+        // scene so it never obstructs the project cards.
         tl.fromTo(
           CHAR,
           { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1 },
-          { x: off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: tFadeOutEnd - tWork },
-          tWork
+          { x: off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: tFadeOut1End - tFadeOut1Start },
+          tFadeOut1Start
         );
-        // (0.64 → 0.80): HOLD — completely hidden (image AND bubble) through
-        // the rest of Scene 04.
 
-        // ── Scene 05 (0.80 → 0.90) — fade back in on the RIGHT ───────────
+        // ── Range 5 (0.63 → 0.73) — fade back in on the RIGHT ────────────
+        // Fully visible and settled by 73%.
         tl.fromTo(
           CHAR,
           { x: off + 100, rotateY: 8, z: -80, scale: 0.85, autoAlpha: 0 },
-          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1, duration: tFadeIn2End - tFocus },
-          tFocus
+          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1, duration: tFadeIn2End - tFadeIn2Start },
+          tFadeIn2Start
         );
-        tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tFocus);
-        // (0.84 → 0.90): HOLD — fully visible on the right.
+        tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tFadeIn2Start);
+        // (0.73 → 0.83): HOLD — fully visible and stationary on the RIGHT.
+        // No movement, no text change (nothing tweens in this band).
 
-        // ── Scene 06 (0.90 → 1.00) — fade out completely ─────────────────
-        // Vanishes as the contact form and social links come into view.
+        // ── Range 6 (0.83 → 0.92) — fade out completely ──────────────────
+        // Vanishes across the 83–92% band so the contact form and social
+        // links stay clear; gone by 92%.
         tl.fromTo(
           CHAR,
           { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1 },
-          { x: off * 0.6, rotateY: 0, z: 0, scale: 0.95, autoAlpha: 0, duration: tContactOutEnd - tContact },
-          tContact
+          { x: off * 0.6, rotateY: 0, z: 0, scale: 0.95, autoAlpha: 0, duration: tFadeOut2End - tFadeOut2Start },
+          tFadeOut2Start
         );
+        // (0.92 → 1.00): HOLD — remain hidden (no tweens in this band).
       };
 
       build();
@@ -306,7 +314,7 @@ export default function CharacterLayer() {
         </div>
 
         {/* Speech bubble — own depth layer (translateZ 50px), follows the
-            character. Its opacity is 1 from the Scene-02 boundary on and it
+            character. Its opacity is 1 from the first fade-in start on and it
             inherits the wrapper's scrubbed autoAlpha, so it fades in and out
             in perfect sync with #hi3-img (one unit). */}
         <div
