@@ -67,3 +67,24 @@ body {
   outline: 2px solid #ff6b7a;
   outline-offset: 3px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   #hi3-img — strict default-hidden state (Scene 01 / Hero).
+   !important beats any inline style, so the avatar can NEVER flash
+   on page load, hard refresh, or scroll back to the top — even
+   before GSAP hydrates. The character layer's scrubbed timeline
+   toggles .is-active on .char-scroll the moment scroll progress
+   leaves Scene 01; the smooth fades themselves are scrubbed on the
+   wrapper (.char-scroll) by GSAP autoAlpha, while this rule only
+   gates the image's own visibility.
+   ───────────────────────────────────────────────────────────── */
+#hi3-img {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none;
+}
+
+.char-scroll.is-active #hi3-img {
+  opacity: 1 !important;
+  visibility: visible !important;
+}

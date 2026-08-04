@@ -7,9 +7,16 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
 /**
  * Single fixed character layer — ONE global <img id="hi3-img"> (hi3.png)
  * pinned to the viewport, gliding between sections with GSAP 3D transforms.
- * The element carries a CSS initial state of opacity: 0; visibility: hidden;
- * pointer-events: none so it is never visible on page load or in Scene 01 —
- * GSAP's autoAlpha then owns opacity/visibility from there on.
+ *
+ * Visibility is guarded at THREE levels so the avatar can never flash:
+ *   1. globals.css sets #hi3-img { opacity:0 !important; visibility:
+ *      hidden !important; pointer-events:none } by default (Scene 01).
+ *   2. The .char-scroll wrapper ships with opacity-0 invisible
+ *      pointer-events-none Tailwind classes (pre-hydration).
+ *   3. GSAP autoAlpha takes over opacity/visibility on the wrapper for the
+ *      scrubbed scene fades; .char-scroll.is-active (toggled by the
+ *      ScrollTrigger onUpdate once progress leaves Scene 01) un-hides the
+ *      image's own !important rules.
  *
  *   Hero     → COMPLETELY HIDDEN (opacity 0, visibility hidden)
  *   About    → fades in, then HOLDS on the LEFT side for the whole scene
@@ -22,15 +29,17 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  *   Contact  → vanishes (opacity 0, autoAlpha) as Scene 06 enters so the
  *              contact form and social links stay clear
  *
- * One master timeline scrubbed across the whole document (scrub: 1, ease:
- * power2.out per segment for clean glides). Because the timeline is fully
- * scrubbed, scrolling backwards seamlessly plays every step in reverse:
- * fade-in at Scene 05, fade-out at Scene 04, right→left at Scene 03,
- * left→right... back to opacity 0 at Scene 01.
+ * One master timeline scrubbed across the whole document (scrub: 1,
+ * invalidateOnRefresh: true, ease: power2.out per segment). Because the
+ * timeline is fully scrubbed, scrolling backwards seamlessly plays every
+ * step in reverse: fade-in at Scene 05, fade-out at Scene 04, right→left
+ * at Scene 03, left→right... back to opacity 0 at Scene 01.
  * Scene boundaries are derived from each section's real scroll position,
  * and each transition completes early in its target scene, then HOLDS so
  * the character stays in the correct pose for the rest of that scene.
- * Boundaries are rebuilt on resize/load.
+ * Boundaries are rebuilt on resize, on window load, after document.fonts
+ * resolves, and via an 800ms post-mount sweep — so hard refreshes never
+ * leave stale positions.
  *
  * Layers (nested so no two animations fight over one transform):
  *   .char-scroll – scroll-driven x/y/scale/rotateY/z/autoAlpha
@@ -132,6 +141,15 @@ export default function CharacterLayer() {
             start: "top top",
             end: "bottom bottom",
             scrub: 1, // tied to scroll: forward AND reverse play seamlessly
+            invalidateOnRefresh: true, // re-capture fromTo values on refresh
+            onUpdate: (self) => {
+              // Once scroll leaves Scene 01, un-hide #hi3-img via .is-active
+              // (its CSS default is opacity/visibility hidden with
+              // !important). The wrapper's scrubbed autoAlpha still drives
+              // the smooth fade; this only gates the image's own rules.
+              const scrollEl = root.querySelector(".char-scroll");
+              scrollEl?.classList.toggle("is-active", self.progress > 0.0001);
+            },
           },
         });
 
@@ -214,7 +232,25 @@ export default function CharacterLayer() {
       };
       window.addEventListener("resize", onResize);
       window.addEventListener("load", onLoad);
+
+      // Recalculate scene boundaries after all fonts AND images have loaded
+      // — prevents stale positions on hard refresh if late assets shift the
+      // layout (scene tops move → the avatar would appear at the wrong spot).
+      let disposed = false;
+      const refreshWhenReady = () => {
+        if (disposed) return;
+        ScrollTrigger.refresh();
+        build();
+      };
+      if (document.fonts && "ready" in document.fonts) {
+        document.fonts.ready.then(refreshWhenReady);
+      }
+      // Fallback sweep shortly after mount catches late images/layout too.
+      const sweepTimer = window.setTimeout(refreshWhenReady, 800);
+
       return () => {
+        disposed = true;
+        window.clearTimeout(sweepTimer);
         window.removeEventListener("resize", onResize);
         window.removeEventListener("load", onLoad);
       };
