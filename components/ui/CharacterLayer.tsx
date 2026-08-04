@@ -6,7 +6,7 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 /**
  * Single fixed character layer — ONE global <img id="hi3-img"> (hi3.png)
- * pinned to the viewport, gliding between sections with GSAP 3D transforms.
+ * pinned to the viewport, gliding between scenes with GSAP 3D transforms.
  *
  * Visibility is guarded at THREE levels so the avatar can never flash:
  *   1. globals.css sets #hi3-img { opacity:0 !important; visibility:
@@ -15,31 +15,33 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  *      pointer-events-none Tailwind classes (pre-hydration).
  *   3. GSAP autoAlpha takes over opacity/visibility on the wrapper for the
  *      scrubbed scene fades; .char-scroll.is-active (toggled by the
- *      ScrollTrigger onUpdate once progress leaves Scene 01) un-hides the
- *      image's own !important rules.
+ *      ScrollTrigger onUpdate once scroll leaves the very top) un-hides
+ *      the image's own !important rules.
  *
- *   Hero     → COMPLETELY HIDDEN (opacity 0, visibility hidden)
- *   About    → fades in, then HOLDS on the LEFT side for the whole scene
- *              (text content sits right)
- *   Skills   → glides LEFT → RIGHT early in the scene and REMAINS fully
- *              visible throughout Scene 03 (no shrink / no fade there)
- *   Projects → vanishes right as the section enters (scale 0.8,
- *              translateZ(-100px), opacity 0, visibility hidden)
- *   Focus    → reappears on the RIGHT (translateX 100px → 0 entrance)
- *   Contact  → vanishes (opacity 0, autoAlpha) as Scene 06 enters so the
- *              contact form and social links stay clear
+ * The image (#hi3-img) and the speech bubble (#char-bubble) are treated as
+ * ONE UNIT: opacity/visibility is animated ONLY on the .char-scroll
+ * wrapper (autoAlpha), and the bubble inherits it — so both always fade,
+ * move, and appear in perfect sync. The bubble's own autoAlpha is set to 1
+ * at the Scene-02 boundary and never touched again.
+ *
+ * Scene keyframes are FIXED progress values (0.20 / 0.40 / 0.60 / 0.80 /
+ * 0.90) that match the bottom-left progress indicator exactly — no element
+ * position math:
+ *   0.00 → 0.20  Scene 01 Hero     — COMPLETELY HIDDEN
+ *   0.20 → 0.40  Scene 02 About    — fade in together on the LEFT
+ *   0.40 → 0.60  Scene 03 Skills   — glide LEFT→RIGHT, autoAlpha 1
+ *   0.60 → 0.80  Scene 04 Projects — fade out completely
+ *   0.80 → 0.90  Scene 05 Focus    — fade back in on the RIGHT
+ *   0.90 → 1.00  Scene 06 Contact  — fade out completely
  *
  * One master timeline scrubbed across the whole document (scrub: 1,
  * invalidateOnRefresh: true, ease: power2.out per segment). Because the
  * timeline is fully scrubbed, scrolling backwards seamlessly plays every
- * step in reverse: fade-in at Scene 05, fade-out at Scene 04, right→left
- * at Scene 03, left→right... back to opacity 0 at Scene 01.
- * Scene boundaries are derived from each section's real scroll position,
- * and each transition completes early in its target scene, then HOLDS so
- * the character stays in the correct pose for the rest of that scene.
- * Boundaries are rebuilt on resize, on window load, after document.fonts
- * resolves, and via an 800ms post-mount sweep — so hard refreshes never
- * leave stale positions.
+ * step in reverse. Transitions complete early inside their target scene,
+ * then HOLD so the character keeps the correct pose for the rest of it.
+ * The timeline is rebuilt on resize, window load, document.fonts.ready,
+ * and an 800ms post-mount sweep — so hard refreshes never leave stale
+ * state.
  *
  * Layers (nested so no two animations fight over one transform):
  *   .char-scroll – scroll-driven x/y/scale/rotateY/z/autoAlpha
@@ -105,34 +107,28 @@ export default function CharacterLayer() {
           tl = null;
         }
 
-        const docH = document.documentElement.scrollHeight - window.innerHeight;
-        if (docH <= 0) return;
+        if (document.documentElement.scrollHeight <= window.innerHeight) return;
 
         const off = window.innerWidth >= 1024 ? 300 : 70; // side travel (px)
-        const vh = window.innerHeight;
 
-        const boundary = (selector: string) => {
-          const el = document.querySelector(selector);
-          if (!el) return 1;
-          const b = el.getBoundingClientRect().top + window.scrollY - vh;
-          return Math.max(0, Math.min(1, b / docH));
-        };
+        // ── FIXED PROGRESS KEYFRAMES ─────────────────────────────────────
+        // These match the bottom-left progress rail exactly (scenes split at
+        // 0.20 / 0.40 / 0.60 / 0.80, Contact 0.90 → 1.00). No element
+        // position math — the animation is locked to the global percentage,
+        // so it always agrees with the indicator.
+        const tAbout = 0.2;    // Scene 02 (About)   begins
+        const tSkills = 0.4;   // Scene 03 (Skills)  begins
+        const tWork = 0.6;     // Scene 04 (Projects) begins
+        const tFocus = 0.8;    // Scene 05 (Focus)   begins
+        const tContact = 0.9;  // Scene 06 (Contact) begins
 
-        const tAbout = boundary("#about");
-        const tSkills = boundary("#skills");
-        const tWork = boundary("#work");
-        const tFocus = boundary("#focus");
-        const tContact = boundary("#contact");
-
-        const D = (a: number, b: number) => Math.max(0.0001, b - a);
-
-        // Transition windows — each transition finishes early inside its
-        // target scene, then the timeline HOLDS so the character keeps the
-        // correct pose for the remainder of that scene:
-        const tMoveEnd = tSkills + (tWork - tSkills) * 0.45;    // left→right glide done early in Scene 03
-        const tFadeOutEnd = tWork + (tFocus - tWork) * 0.3;     // vanish right after Projects (04) enters
-        const tFadeInEnd = tFocus + (tContact - tFocus) * 0.3;  // reappear right after Focus (05) enters
-        const tContactOutEnd = tContact + (1 - tContact) * 0.35; // vanish shortly after Contact (06) enters
+        // Transition windows — each finishes early inside its target scene,
+        // then the timeline HOLDS the pose for the remainder of that scene:
+        const tFadeIn1End = 0.24;     // 02: fade-in done by 24%
+        const tMoveEnd = 0.5;         // 03: left→right glide done by 50%
+        const tFadeOutEnd = 0.64;     // 04: vanish done by 64%
+        const tFadeIn2End = 0.84;     // 05: fade-in done by 84%
+        const tContactOutEnd = 0.94;  // 06: vanish done by 94%
 
         tl = gsap.timeline({
           defaults: { ease: "power2.out" },
@@ -143,79 +139,81 @@ export default function CharacterLayer() {
             scrub: 1, // tied to scroll: forward AND reverse play seamlessly
             invalidateOnRefresh: true, // re-capture fromTo values on refresh
             onUpdate: (self) => {
-              // Once scroll leaves Scene 01, un-hide #hi3-img via .is-active
-              // (its CSS default is opacity/visibility hidden with
-              // !important). The wrapper's scrubbed autoAlpha still drives
-              // the smooth fade; this only gates the image's own rules.
+              // Once scroll leaves the very top, un-hide #hi3-img via
+              // .is-active (its CSS default is opacity/visibility hidden
+              // with !important). This is only the pre-hydration flash
+              // guard — scene visibility itself is driven by the wrapper's
+              // scrubbed autoAlpha, so image + bubble always stay in sync.
               const scrollEl = root.querySelector(".char-scroll");
               scrollEl?.classList.toggle("is-active", self.progress > 0.0001);
             },
           },
         });
 
-        // ── Scene 01 → 02 — fade in on the LEFT ──────────────────────────
-        // Hidden through all of Scene 01 (autoAlpha 0 = opacity 0 +
-        // visibility hidden at scroll 0). Glides in as About approaches and
-        // then HOLDS on the left for the entire Scene 02.
+        // ── Scene 01 (0 → 0.20) — COMPLETELY HIDDEN ──────────────────────
+        // The set at time 0 pins the whole unit (image + bubble, both inside
+        // .char-scroll) to autoAlpha 0 — nothing animates during the Hero
+        // scene, on page load, or on refresh.
+        tl.set(
+          CHAR,
+          { x: -off - 60, rotateY: -14, z: 0, scale: 0.92, autoAlpha: 0 },
+          0
+        );
+
+        // ── Scene 02 (0.20 → 0.40) — fade in together on the LEFT ────────
         tl.fromTo(
           CHAR,
           { x: -off - 60, rotateY: -14, z: 0, scale: 0.92, autoAlpha: 0 },
-          { x: -off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1, duration: D(0, tAbout) },
-          0
+          { x: -off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1, duration: tFadeIn1End - tAbout },
+          tAbout
         );
-        tl.fromTo(BUBBLE, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, Math.max(0, tAbout - 0.01));
+        // From the Scene-02 boundary on, the bubble's own opacity is 1 and it
+        // rides the wrapper's autoAlpha — image + bubble fade as one unit.
+        tl.set(BUBBLE, { autoAlpha: 1 }, tAbout);
         tl.add(() => setBubble({ lines: ["Hi! Code + Coffee ☕", "How can I help?"], side: "right" }), tAbout);
-        // (tAbout → tSkills): HOLD — fully visible on the LEFT during Scene 02.
+        // (0.24 → 0.40): HOLD — fully visible on the LEFT during Scene 02.
 
-        // ── Scene 03 — glide LEFT → RIGHT, fully visible the whole time ──
-        // The sweep happens inside Scene 03 (not Scene 02) and finishes
-        // early; there is NO shrink and NO fade anywhere in Scene 03.
+        // ── Scene 03 (0.40 → 0.60) — glide LEFT → RIGHT, fully visible ───
+        // No shrink and no fade anywhere in Scene 03 — autoAlpha stays 1.
         tl.fromTo(
           CHAR,
           { x: -off, rotateY: -10, z: 30, scale: 1, autoAlpha: 1 },
-          { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1, duration: D(tSkills, tMoveEnd) },
+          { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1, duration: tMoveEnd - tSkills },
           tSkills
         );
         tl.add(() => setBubble({ lines: ["These are my weapons ⚔️", "Ready to build?"], side: "left" }), tSkills);
-        // (tMoveEnd → tWork): HOLD — fully visible on the RIGHT for the rest
-        // of Scene 03.
+        // (0.50 → 0.60): HOLD — fully visible on the RIGHT.
 
-        // ── Scene 04 — vanish as Projects enters ─────────────────────────
-        // Scales back into 3D space and fades out quickly after the Projects
-        // section appears, so it never obstructs the project cards, and
-        // stays COMPLETELY HIDDEN through the rest of Scene 04.
+        // ── Scene 04 (0.60 → 0.80) — fade out completely ─────────────────
+        // Scales back into 3D space and fades out right after Projects
+        // enters, so it never obstructs the project cards.
         tl.fromTo(
           CHAR,
           { x: off, rotateY: 10, z: 30, scale: 1, autoAlpha: 1 },
-          { x: off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: D(tWork, tFadeOutEnd) },
+          { x: off * 0.5, rotateY: 4, z: -100, scale: 0.8, autoAlpha: 0, duration: tFadeOutEnd - tWork },
           tWork
         );
-        tl.fromTo(BUBBLE, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01 }, Math.max(0, tWork - 0.01));
-        // (tFadeOutEnd → tFocus): HOLD — completely hidden through the rest
-        // of Scene 04.
+        // (0.64 → 0.80): HOLD — completely hidden (image AND bubble) through
+        // the rest of Scene 04.
 
-        // ── Scene 05 — reappear on the RIGHT (right-to-left entrance) ────
+        // ── Scene 05 (0.80 → 0.90) — fade back in on the RIGHT ───────────
         tl.fromTo(
           CHAR,
           { x: off + 100, rotateY: 8, z: -80, scale: 0.85, autoAlpha: 0 },
-          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1, duration: D(tFocus, tFadeInEnd) },
+          { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1, duration: tFadeIn2End - tFocus },
           tFocus
         );
-        tl.fromTo(BUBBLE, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01 }, Math.max(0, tFocus - 0.01));
         tl.add(() => setBubble({ lines: ["In the zone ✨", "Learning • Building • Growing"], side: "left" }), tFocus);
-        // (tFadeInEnd → tContact): HOLD — fully visible on the right
-        // through the rest of Scene 05.
+        // (0.84 → 0.90): HOLD — fully visible on the right.
 
-        // ── Scene 06 — vanish as Contact enters ─────────────────────────
-        // Fades out (and settles slightly) as the contact form and social
-        // links come into view, so the contact area stays clear.
+        // ── Scene 06 (0.90 → 1.00) — fade out completely ─────────────────
+        // Vanishes as the contact form and social links come into view.
         tl.fromTo(
           CHAR,
           { x: off, rotateY: -8, z: 0, scale: 1, autoAlpha: 1 },
-          { x: off * 0.6, rotateY: 0, z: 0, scale: 0.95, autoAlpha: 0, duration: D(tContact, tContactOutEnd) },
+          { x: off * 0.6, rotateY: 0, z: 0, scale: 0.95, autoAlpha: 0, duration: tContactOutEnd - tContact },
           tContact
         );
-        tl.fromTo(BUBBLE, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01 }, Math.max(0, tContact - 0.01));
       };
 
       build();
@@ -301,10 +299,13 @@ export default function CharacterLayer() {
           />
         </div>
 
-        {/* Speech bubble — own depth layer (translateZ 50px), follows the character */}
+        {/* Speech bubble — own depth layer (translateZ 50px), follows the
+            character. Its opacity is 1 from the Scene-02 boundary on and it
+            inherits the wrapper's scrubbed autoAlpha, so it fades in and out
+            in perfect sync with #hi3-img (one unit). */}
         <div
           id="char-bubble"
-          className={`absolute top-[6%] z-10 opacity-0 ${
+          className={`absolute top-[6%] z-10 ${
             bubble.side === "right"
               ? "left-[calc(100%+1.5rem)]"
               : "right-[calc(100%+1.5rem)]"
