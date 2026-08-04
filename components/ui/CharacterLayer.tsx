@@ -5,8 +5,11 @@ import Image from "next/image";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 /**
- * Single fixed character layer — ONE global <img id="character-img"> (hi3.png)
- * pinned to the viewport, gliding between sections with GSAP 3D transforms:
+ * Single fixed character layer — ONE global <img id="hi3-img"> (hi3.png)
+ * pinned to the viewport, gliding between sections with GSAP 3D transforms.
+ * The element carries a CSS initial state of opacity: 0; visibility: hidden;
+ * pointer-events: none so it is never visible on page load or in Scene 01 —
+ * GSAP's autoAlpha then owns opacity/visibility from there on.
  *
  *   Hero     → COMPLETELY HIDDEN (opacity 0, visibility hidden)
  *   About    → fades in, then HOLDS on the LEFT side for the whole scene
@@ -19,8 +22,11 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  *   Contact  → vanishes (opacity 0, autoAlpha) as Scene 06 enters so the
  *              contact form and social links stay clear
  *
- * One master timeline scrubbed across the whole document (scrub: 1.5 for
- * cinematic inertia, ease: power2.out per segment for clean glides).
+ * One master timeline scrubbed across the whole document (scrub: 1, ease:
+ * power2.out per segment for clean glides). Because the timeline is fully
+ * scrubbed, scrolling backwards seamlessly plays every step in reverse:
+ * fade-in at Scene 05, fade-out at Scene 04, right→left at Scene 03,
+ * left→right... back to opacity 0 at Scene 01.
  * Scene boundaries are derived from each section's real scroll position,
  * and each transition completes early in its target scene, then HOLDS so
  * the character stays in the correct pose for the rest of that scene.
@@ -29,10 +35,11 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  * Layers (nested so no two animations fight over one transform):
  *   .char-scroll – scroll-driven x/y/scale/rotateY/z/autoAlpha
  *   .char-float  – ambient time-based bob
- *   #character-img – the hi3.png cutout with a static cinematic filter
- *   #char-bubble  – speech bubble on its own translateZ(50px) depth layer
+ *   #hi3-img     – the hi3.png cutout with a static cinematic filter
+ *   #char-bubble – speech bubble on its own translateZ(50px) depth layer
  *
- * The image responds ONLY to scrolling — zero reaction to cursor movement.
+ * The image responds ONLY to scrolling — there are NO cursor/mousemove
+ * listeners attached anywhere in this component.
  * Container: position fixed, pointer-events none, z-index 10 — buttons and
  * project links always stay clickable.
  */
@@ -60,11 +67,12 @@ export default function CharacterLayer() {
       const BUBBLE = "#char-bubble";
 
       // ── Static initial states ──────────────────────────────────────────
-      // Starts hidden (Section 01 Hero) — autoAlpha 0 = opacity 0 + visibility hidden.
-      gsap.set(CHAR, {
-        x: -320, y: 0, scale: 0.9, rotateY: 0, z: 0, autoAlpha: 0,
-        transformPerspective: 1000,
-      });
+      // Starts hidden (Scene 01 / Hero). The DOM also carries a CSS initial
+      // state (opacity-0 invisible pointer-events-none on .char-scroll) so
+      // the image is hidden even before this JS runs; autoAlpha here takes
+      // over opacity + visibility for the rest of the page. Position/scale
+      // are left to the timeline's fromTo at progress 0 — no stale values.
+      gsap.set(CHAR, { autoAlpha: 0, transformPerspective: 1000 });
       gsap.set(BUBBLE, { z: 50, autoAlpha: 0, transformPerspective: 1000 });
 
       // ── Ambient floating (time-based, endless) ─────────────────────────
@@ -123,7 +131,7 @@ export default function CharacterLayer() {
             trigger: document.body,
             start: "top top",
             end: "bottom bottom",
-            scrub: 1.5,
+            scrub: 1, // tied to scroll: forward AND reverse play seamlessly
           },
         });
 
@@ -224,7 +232,13 @@ export default function CharacterLayer() {
       style={{ perspective: "1000px" }}
       aria-hidden
     >
-      <div className="char-scroll relative" style={{ transformStyle: "preserve-3d" }}>
+      {/* Initial CSS state: opacity 0, visibility hidden, pointer-events none
+          — guarantees hi3-img is invisible on page load / Scene 01 even before
+          GSAP hydrates. GSAP autoAlpha (inline styles) takes over from here. */}
+      <div
+        className="char-scroll pointer-events-none invisible relative opacity-0"
+        style={{ transformStyle: "preserve-3d" }}
+      >
         <div className="char-float relative" style={{ transformStyle: "preserve-3d" }}>
           {/* Soft crimson rim-glow halo + under-glow */}
           <div
@@ -236,7 +250,7 @@ export default function CharacterLayer() {
             className="absolute inset-0 rounded-full bg-crimson-hot/10 blur-xl"
           />
           <Image
-            id="character-img"
+            id="hi3-img"
             src="/hi3.png"
             alt=""
             width={1023}
