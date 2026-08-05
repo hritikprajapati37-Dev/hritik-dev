@@ -82,6 +82,10 @@ body {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none;
+  /* Soft bottom edge — fades the hard straight cut into the dark
+     background so the figure blends into the scene. */
+  mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
 }
 
 .char-scroll.is-active #hi3-img {
